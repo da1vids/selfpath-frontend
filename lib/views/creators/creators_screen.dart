@@ -4,6 +4,9 @@ import '../../../models/creator_model.dart';
 import 'widgets/creator_card.dart'; // import your new widget
 
 class CreatorsScreen extends StatefulWidget {
+
+  const CreatorsScreen({super.key});
+
   @override
   _CreatorsScreenState createState() => _CreatorsScreenState();
 }

@@ -6,8 +6,12 @@ import '../../widgets/styled_input.dart';
 import '../../theme/theme.dart';
 import 'package:provider/provider.dart';
 import '../../providers/user_provider.dart';
+import 'package:device_info_plus/device_info_plus.dart';
+import 'dart:io';
 
 class LoginScreen extends StatefulWidget {
+  const LoginScreen({super.key});
+
   @override
   _LoginScreenState createState() => _LoginScreenState();
 }
@@ -17,6 +21,13 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController passwordController = TextEditingController();
   final AuthService _authService = AuthService();
   bool _obscureText = true;
+  String deviceName = 'Unknown device';
+
+  @override
+  void initState() {
+    super.initState();
+    getDeviceName();
+  }
 
   @override
   void dispose() {
@@ -25,43 +36,65 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  void _handleLogin(
-    BuildContext context,
-    Future<Map<String, dynamic>> Function() method,
-  ) async {
-    showDialog(
+  Future<void> getDeviceName() async {
+    try {
+      final deviceInfo = DeviceInfoPlugin();
+      if (Platform.isAndroid) {
+        final android = await deviceInfo.androidInfo;
+        setState(() => deviceName = android.model);
+      } else if (Platform.isIOS) {
+        final ios = await deviceInfo.iosInfo;
+        setState(() => deviceName = ios.name);
+      }
+    } catch (_) {
+      setState(() => deviceName = 'Could not retrieve device name');
+    }
+  }
+
+  Future<void> _handleLogin(
+      BuildContext context,
+      Future<Map<String, dynamic>> Function() method,
+      ) async {
+    // Capture everything you'll need from context BEFORE any await
+    final nav = Navigator.of(context, rootNavigator: true);
+    final messenger = ScaffoldMessenger.of(context);
+    final userProvider = context.read<UserProvider>();
+
+    // show loading (allowed: we haven't awaited yet)
+    showDialog<void>(
       context: context,
       barrierDismissible: false,
-      builder: (_) => Center(child: CircularProgressIndicator()),
+      builder: (_) => const Center(child: CircularProgressIndicator()),
     );
 
     try {
-      final result = await method();
-      Navigator.pop(context); // close loading dialog
+      final result = await method(); // <-- async gap, but we won't use context after this
+
+      // Close dialog via captured navigator (no context)
+      if (nav.canPop()) nav.pop();
 
       if (result['success'] == true) {
-        // ✅ Fetch the authenticated user
-        final userResult = await _authService.getCurrentUser();
-        if (userResult['success']) {
-          Provider.of<UserProvider>(
-            context,
-            listen: false,
-          ).setUser(userResult['user']);
+        final userResult = await _authService.getCurrentUser(); // async gap
+
+        if (userResult['success'] == true) {
+          userProvider.setUser(userResult['user']); // uses captured provider, no context
         }
 
-        // ✅ Go to home
-        Navigator.pushReplacementNamed(context, '/home');
+        // Navigate via captured navigator, no context
+        nav.pushReplacementNamed('/home');
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger.showSnackBar(
           SnackBar(content: Text(result['message'] ?? 'Login failed')),
-        );
+        ); // uses captured messenger, no context
       }
     } catch (e) {
-      Navigator.pop(context);
-      print("Login error: $e");
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Something went wrong')));
+      // Close dialog if still open, using captured navigator
+      if (nav.canPop()) nav.pop();
+
+      debugPrint('Login error: $e');
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Something went wrong')),
+      ); // uses captured messenger, no context
     }
   }
 
@@ -193,6 +226,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             () => _authService.loginWithEmail(
                               emailController.text,
                               passwordController.text,
+                              deviceName
                             ),
                           ),
                       child: Text("Log In"),
@@ -220,29 +254,28 @@ class _LoginScreenState extends State<LoginScreen> {
                           );
                         }),
                         _buildSocialIcon('assets/icons/wallet.svg', () {
+                          // capture before any async gap
+                          final nav = Navigator.of(context, rootNavigator: true);
+                          final messenger = ScaffoldMessenger.of(context);
+
                           _authService
                               .loginWithWeb3((uri) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(
-                                      'Open this URI in your Wallet:\n$uri',
-                                    ),
-                                    duration: Duration(seconds: 10),
-                                  ),
-                                );
-                              })
+                            messenger.showSnackBar(
+                              SnackBar(
+                                content: Text('Open this URI in your Wallet:\n$uri'),
+                                duration: const Duration(seconds: 10),
+                              ),
+                            );
+                          })
                               .then((success) {
-                                if (success) {
-                                  Navigator.pushReplacementNamed(
-                                    context,
-                                    '/home',
-                                  );
-                                } else {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(content: Text('Login failed')),
-                                  );
-                                }
-                              });
+                            if (success) {
+                              nav.pushReplacementNamed('/home'); // no BuildContext used
+                            } else {
+                              messenger.showSnackBar(
+                                const SnackBar(content: Text('Login failed')),
+                              );
+                            }
+                          });
                         }),
                       ],
                     ),

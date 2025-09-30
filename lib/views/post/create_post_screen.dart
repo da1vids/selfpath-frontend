@@ -8,6 +8,8 @@ import 'image_tier_editor_screen.dart';
 import 'become_a_creator_screen.dart';
 
 class CreatePostScreen extends StatelessWidget {
+  const CreatePostScreen({super.key});
+
   @override
   Widget build(BuildContext context) {
     final user = Provider.of<UserProvider>(context).user;

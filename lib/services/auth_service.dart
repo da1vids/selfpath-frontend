@@ -8,6 +8,8 @@ import 'package:http/http.dart' as http;
 import 'package:walletconnect_dart/walletconnect_dart.dart';
 import 'package:web3dart/crypto.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import '../utils/device_utils.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 
 class AuthService {
   static final String _baseUrl = dotenv.env['API_BASE_URL']!;
@@ -17,6 +19,7 @@ class AuthService {
   Future<Map<String, dynamic>> loginWithEmail(
     String email,
     String password,
+    String deviceName
   ) async {
     final response = await http.post(
       Uri.parse(loginEndpoint),
@@ -25,6 +28,7 @@ class AuthService {
         'login_method': 'username',
         'email': email,
         'password': password,
+        'device_name': deviceName,
       }),
     );
 
@@ -43,6 +47,9 @@ class AuthService {
         await prefs.setString('user', jsonEncode(user));
         print("🔐 User set");
       }
+      // 🚀 send device token now that we are authenticated
+      await sendDeviceToken();
+
       print("🔐 Login successfully");
       return {'success': true, 'message': 'Login successful', 'user': user};
     }
@@ -226,6 +233,21 @@ class AuthService {
   Future<bool> logout() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('token');
+    final fcm = prefs.getString('fcm_token');
+
+    if (token != null && fcm != null && fcm.isNotEmpty) {
+      try {
+        await http.delete(
+          Uri.parse('$_baseUrl/api/auth/device-token'),
+          headers: {
+            'Authorization': 'Bearer $token',
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+          },
+          body: jsonEncode({'token': fcm}),
+        );
+      } catch (_) {}
+    }
 
     if (token == null) return false;
 
@@ -304,27 +326,51 @@ class AuthService {
     }
   }
 
-  Future<void> sendDeviceToken() async {
+  Future<void> sendDeviceToken({String? tokenOverride}) async {
     final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('token');
-    final fcmToken = prefs.getString('fcm_token');
 
-    if (token == null || fcmToken == null || fcmToken.isEmpty) {
-      print("🔕 Token or FCM token missing");
+    // API auth token
+    final authToken = prefs.getString('token');
+    if (authToken == null || authToken.isEmpty) {
+      print('🔕 No auth token — not sending device token.');
       return;
     }
 
+    // Get FCM token (override or stored or from Firebase)
+    String? fcmToken = tokenOverride;
+    fcmToken ??= prefs.getString('fcm_token');
+    fcmToken ??= await FirebaseMessaging.instance.getToken();
+
+    if (fcmToken == null || fcmToken.isEmpty) {
+      print('🔕 No FCM token — not sending device token.');
+      return;
+    }
+
+    // Collect device info
+    final platform   = DeviceUtils.getPlatform();
+    final deviceId   = await DeviceUtils.getDeviceId();
+    final appVersion = await DeviceUtils.getAppVersion();
+
+    final body = <String, dynamic>{
+      'token': fcmToken,
+      'platform': platform,     // 'android' | 'ios'
+      'device_id': deviceId,    // can be null
+      'app_version': appVersion // e.g. "1.0.3"
+    };
+
     try {
-      final response = await http.post(
+      final resp = await http.post(
         Uri.parse('$_baseUrl/api/auth/device-token'),
         headers: {
-          'Authorization': 'Bearer $token',
+          'Authorization': 'Bearer $authToken',
+          'Accept': 'application/json',
           'Content-Type': 'application/json',
         },
-        body: json.encode({'token': fcmToken}),
+        body: jsonEncode(body),
       );
-
-      print('📡 Device token sent: ${response.statusCode}');
+      print('📡 Device token sent: ${resp.statusCode} ${resp.body}');
+      // persist last-sent token
+      await prefs.setString('fcm_token', fcmToken);
     } catch (e) {
       print('❌ Failed to send device token: $e');
     }

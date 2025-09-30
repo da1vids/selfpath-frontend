@@ -9,6 +9,8 @@ import '../post/create_post_screen.dart';
 import '../../providers/user_provider.dart';
 
 class HomeScreen extends StatefulWidget {
+  const HomeScreen({super.key});
+
   @override
   _HomeScreenState createState() => _HomeScreenState();
 }
@@ -26,34 +28,38 @@ class _HomeScreenState extends State<HomeScreen> {
   ];
 
   Future<void> _confirmLogout(BuildContext context) async {
+    // Capture before any async gap
+    final nav = Navigator.of(context, rootNavigator: true);
+    final messenger = ScaffoldMessenger.of(context);
+
     final confirm = await showDialog<bool>(
       context: context,
-      builder:
-          (_) => AlertDialog(
-            title: Text('Confirm Logout'),
-            content: Text('Are you sure you want to log out?'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: Text('Cancel'),
-              ),
-              TextButton(
-                onPressed: () => Navigator.pop(context, true),
-                child: Text('Logout'),
-              ),
-            ],
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Confirm Logout'),
+        content: const Text('Are you sure you want to log out?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel'),
           ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Logout'),
+          ),
+        ],
+      ),
     );
 
-    if (confirm == true) {
-      final success = await _authService.logout();
-      if (success) {
-        Navigator.pushReplacementNamed(context, '/login');
-      } else {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text("Logout failed")));
-      }
+    if (confirm != true) return;
+
+    final success = await _authService.logout();
+
+    if (success) {
+      nav.pushReplacementNamed('/login'); // safe, no context
+    } else {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Logout failed')),
+      );
     }
   }
 
@@ -74,10 +80,12 @@ class _HomeScreenState extends State<HomeScreen> {
             alignment: Alignment.center,
             child: SvgPicture.asset(
               assetPath,
-              color:
-                  isUploadIcon
-                      ? null
-                      : (_selectedIndex == index ? Colors.white : Colors.grey),
+              colorFilter: isUploadIcon
+                  ? null
+                  : ColorFilter.mode(
+                _selectedIndex == index ? Colors.white : Colors.grey,
+                BlendMode.srcIn,
+              ),
               width: isUploadIcon ? 36 : 24,
               height: isUploadIcon ? 36 : 24,
             ),
@@ -145,7 +153,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      /*       appBar: AppBar(
+      appBar: AppBar(
         title: Text('Welcome!'),
         actions: [
           IconButton(
@@ -154,7 +162,7 @@ class _HomeScreenState extends State<HomeScreen> {
             tooltip: 'Logout',
           ),
         ],
-      ), */
+      ),
       body: _buildPageContent(),
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,

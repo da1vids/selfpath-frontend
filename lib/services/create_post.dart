@@ -18,25 +18,24 @@ class CreatePostService {
     if (regionsToBlur.isEmpty || regionsToBlur.contains('select')) return null;
 
     final uri = Uri.parse('$_baseUrl/api/preview-blur');
-
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('token');
 
-    final request =
-        http.MultipartRequest('POST', uri)
-          ..fields['regions'] = jsonEncode(regionsToBlur)
-          ..headers['Authorization'] = 'Bearer $token'
-          ..files.add(
-            await http.MultipartFile.fromPath('image', imageFile.path),
-          );
+    final req = http.MultipartRequest('POST', uri)
+      ..headers['Accept'] = 'application/json'          // ✅ force JSON
+      ..headers['Authorization'] = 'Bearer $token'
+      ..fields['regions'] = jsonEncode(regionsToBlur)
+      ..files.add(await http.MultipartFile.fromPath('image', imageFile.path));
 
-    final response = await request.send();
-    final responseBody = await response.stream.bytesToString();
+    final res = await req.send();
+    final body = await res.stream.bytesToString();
 
-    if (response.statusCode == 200) {
-      final json = jsonDecode(responseBody);
-      return json['blurred_url'];
+    if (res.statusCode == 200) {
+      final json = jsonDecode(body);
+      return json['blurred_url'] as String?;
     } else {
+      // Helpful when tracking redirects / validation
+      print('Preview failed: ${res.statusCode}  headers=${res.headers}  body=$body');
       return null;
     }
   }
@@ -44,36 +43,47 @@ class CreatePostService {
   static Future<Map<String, dynamic>?> uploadTier({
     required File imageFile,
     required int credits,
-    required int postId,
+    int? postId,
     required String label,
     required String description,
+    required double blurSigma,         // ✅ required by backend
+    required double brushSize,         // ✅ required by backend
     File? mainPostAsset,
-    double? blurSigma,
-    double? brushSize,
     List<Offset>? drawnPoints,
   }) async {
     final uri = Uri.parse('$_baseUrl/api/post/upload-tier');
-
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('token');
 
-    final request =
-        http.MultipartRequest('POST', uri)
-          ..headers['Authorization'] = 'Bearer $token'
-          ..fields['credits'] = credits.toString()
-          ..fields['post_id'] = postId.toString()
-          ..fields['label'] = label
-          ..fields['description'] = description
-          ..files.add(
-            await http.MultipartFile.fromPath(
-              'tier_image',
-              imageFile.path,
-              contentType: MediaType('image', 'jpeg'),
-            ),
-          );
+    final req = http.MultipartRequest('POST', uri)
+      ..headers['Accept'] = 'application/json'          // ✅ FIX: prevents 302 to /login
+      ..headers['Authorization'] = 'Bearer $token'
+    // Do NOT set Content-Type manually on the request; MultipartRequest handles it.
+      ..fields['credits'] = credits.toString()
+      ..fields['label'] = label
+      ..fields['description'] = description
+      ..fields['blur_sigma'] = blurSigma.toString()     // ✅ always send
+      ..fields['brush_size'] = brushSize.toString()     // ✅ always send
+      ..files.add(
+        await http.MultipartFile.fromPath(
+          'tier_image',
+          imageFile.path,
+          // You can omit contentType; if you keep it, make sure it matches the file.
+          contentType: MediaType('image', 'jpeg'),
+        ),
+      );
+
+    if (postId != null && postId != 0) {
+      req.fields['post_id'] = postId.toString();
+    } else {
+      if (mainPostAsset == null) {
+        throw ArgumentError('mainPostAsset is required when postId is null');
+      }
+      req.files.add(await http.MultipartFile.fromPath('main_post_asset', mainPostAsset.path));
+    }
 
     if (mainPostAsset != null) {
-      request.files.add(
+      req.files.add(
         await http.MultipartFile.fromPath(
           'main_post_asset',
           mainPostAsset.path,
@@ -82,33 +92,29 @@ class CreatePostService {
       );
     }
 
-    if (blurSigma != null) {
-      request.fields['blur_sigma'] = blurSigma.toString();
-    }
-    if (brushSize != null) {
-      request.fields['brush_size'] = brushSize.toString();
-    }
     if (drawnPoints != null) {
       final serialized = jsonEncode(
         drawnPoints.map((p) => {'dx': p.dx, 'dy': p.dy}).toList(),
       );
-      request.fields['blur_points'] = serialized;
+      req.fields['blur_points'] = serialized;
     }
 
-    final response = await request.send();
-    final respString = await response.stream.bytesToString();
+    final res = await req.send();
+    final body = await res.stream.bytesToString();
 
-    if (response.statusCode == 200) {
-      try {
-        final jsonResp = jsonDecode(respString);
-        print('Tier uploaded successfully: $jsonResp');
-        return jsonResp; // This should contain the post_id if first tier
-      } catch (e) {
-        print('Failed to decode response: $e');
-        return null;
-      }
+    if (res.statusCode == 200 || res.statusCode == 201) {
+      final root = jsonDecode(body) as Map<String, dynamic>;
+      final payload = (root['data'] is Map)
+          ? Map<String, dynamic>.from(root['data'])
+          : root; // fallback if you ever return bare object
+
+      final tierId = payload['tier_id'];
+      final postId = payload['post_id'];
+
+      print('Tier uploaded. tier_id=$tierId post_id=$postId');
+      return payload; // or return {'tier_id': tierId, 'post_id': postId};
     } else {
-      print('Failed to upload tier: ${response.statusCode} → $respString');
+      print('Upload failed: ${res.statusCode}  body=$body');
       return null;
     }
   }

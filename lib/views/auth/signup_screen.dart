@@ -6,6 +6,8 @@ import '../../widgets/styled_input.dart';
 import '../../theme/theme.dart';
 
 class SignUpScreen extends StatefulWidget {
+  const SignUpScreen({super.key});
+
   @override
   _SignUpScreenState createState() => _SignUpScreenState();
 }
@@ -21,14 +23,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final AuthService _authService = AuthService();
 
   bool _isValidEmail(String email) {
-    return RegExp(r"^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$").hasMatch(email);
+    return RegExp(r'^[\w.-]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(email);
   }
 
   List<bool> _passwordCriteria(String password) {
     return [
       password.length >= 8,
       RegExp(r'[A-Z]').hasMatch(password),
-      RegExp(r'[!@#\$%^&*(),.?\":{}|<>_|]').hasMatch(password),
+      RegExp(r'[!@#$%^&*(),.?":{}|<>_]').hasMatch(password),
     ];
   }
 
@@ -62,55 +64,51 @@ class _SignUpScreenState extends State<SignUpScreen> {
   }
 
   void _handleSignUp(BuildContext context) async {
+    // Capture from context synchronously (before any await)
+    final nav = Navigator.of(context, rootNavigator: true);
+    final messenger = ScaffoldMessenger.of(context);
+
     final username = usernameController.text.trim();
     final email = emailController.text.trim();
     final password = passwordController.text;
 
+    // Use captured messenger even for early returns (consistency + no context later)
     if (username.isEmpty || email.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Please fill all fields')));
+      messenger.showSnackBar(const SnackBar(content: Text('Please fill all fields')));
       return;
     }
 
     if (!_isValidEmail(email)) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Please enter a valid email')));
+      messenger.showSnackBar(const SnackBar(content: Text('Please enter a valid email')));
       return;
     }
 
     final checks = _passwordCriteria(password);
     if (checks.contains(false)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Password does not meet all criteria')),
-      );
+      messenger.showSnackBar(const SnackBar(content: Text('Password does not meet all criteria')));
       return;
     }
 
-    showDialog(
+    // Show loading dialog (still ok to use context here—no await yet)
+    showDialog<void>(
       context: context,
       barrierDismissible: false,
-      builder: (_) => Center(child: CircularProgressIndicator()),
+      builder: (_) => const Center(child: CircularProgressIndicator()),
     );
 
     try {
       final result = await _authService.signUp(username, email, password);
 
-      Navigator.pop(context);
+      if (nav.canPop()) nav.pop(); // close dialog safely
 
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(result['message'])));
+      messenger.showSnackBar(SnackBar(content: Text(result['message'] ?? '')));
 
-      if (result['success']) {
-        Navigator.pushReplacementNamed(context, '/login');
+      if (result['success'] == true) {
+        nav.pushReplacementNamed('/login');
       }
     } catch (e) {
-      Navigator.pop(context);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Unexpected error: $e')));
+      if (nav.canPop()) nav.pop(); // ensure dialog closed
+      messenger.showSnackBar(SnackBar(content: Text('Unexpected error: $e')));
     }
   }
 

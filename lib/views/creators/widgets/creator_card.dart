@@ -6,8 +6,11 @@ class CreatorCard extends StatelessWidget {
   final Creator creator;
   final VoidCallback onToggle;
 
-  const CreatorCard({Key? key, required this.creator, required this.onToggle})
-    : super(key: key);
+  const CreatorCard({
+    super.key,
+    required this.creator,
+    required this.onToggle,
+  });
 
   @override
   Widget build(BuildContext context) {

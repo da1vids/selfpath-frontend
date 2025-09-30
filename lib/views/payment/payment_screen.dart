@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import '../../services/payment_service.dart';
-import '../../main.dart';
 
 class PaymentScreen extends StatefulWidget {
+  const PaymentScreen({super.key});
+
   @override
   PaymentScreenState createState() => PaymentScreenState();
 }
@@ -38,11 +39,11 @@ class PaymentScreenState extends State<PaymentScreen> {
         child: Column(
           children: [
             ToggleButtons(
-              children: [Text("Credits"), Text("USD")],
               isSelected: [isCreditMode, !isCreditMode],
               onPressed: (index) {
                 setState(() => isCreditMode = index == 0);
               },
+              children: const [Text('Credits'), Text('USD')],
             ),
             SizedBox(height: 20),
             TextField(
@@ -56,34 +57,22 @@ class PaymentScreenState extends State<PaymentScreen> {
             SizedBox(height: 20),
             ElevatedButton(
               onPressed: () async {
+                // capture before any await
+                final nav = Navigator.of(context, rootNavigator: true);
+                final messenger = ScaffoldMessenger.of(context);
+
                 final amount = double.tryParse(_usdController.text) ?? 0;
                 if (amount <= 0) return;
 
                 final error = await PaymentService.makePayment(amount);
-                final message = error ?? "✅ Payment processed";
+                final message = error ?? '✅ Payment processed';
 
-                if (!mounted) {
-                  return; // Prevent using context if widget is disposed
-                }
                 if (error == null) {
-                  // Navigate to home
-                  Navigator.pushNamedAndRemoveUntil(
-                    context,
-                    '/home',
-                    (route) => false,
-                  );
-
-                  // Delay to allow context rebuild
-                  Future.delayed(Duration(milliseconds: 300), () {
-                    // Use global key or context from a global scaffold to show the snackbar
-                    ScaffoldMessenger.of(
-                      navigatorKey.currentContext!,
-                    ).showSnackBar(SnackBar(content: Text(message)));
-                  });
+                  // Option 1: show first, then navigate
+                  messenger.showSnackBar(SnackBar(content: Text(message)));
+                  nav.pushNamedAndRemoveUntil('/home', (route) => false);
                 } else {
-                  ScaffoldMessenger.of(
-                    context,
-                  ).showSnackBar(SnackBar(content: Text(message)));
+                  messenger.showSnackBar(SnackBar(content: Text(message)));
                 }
               },
               child: Text("Pay with Card"),

@@ -2,6 +2,8 @@
 import 'package:flutter/material.dart';
 import '../../providers/user_provider.dart';
 import 'package:provider/provider.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import '../../services/post_service.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:video_player/video_player.dart';
@@ -14,7 +16,7 @@ class HomePostsScreen extends StatefulWidget {
   final int? creatorId;
   final String? tag;
 
-  const HomePostsScreen({super.key, this.creatorId, this.tag});
+  HomePostsScreen({this.creatorId, this.tag});
 
   @override
   _HomePostsScreenState createState() => _HomePostsScreenState();
@@ -22,7 +24,7 @@ class HomePostsScreen extends StatefulWidget {
 
 class _HomePostsScreenState extends State<HomePostsScreen>
     with WidgetsBindingObserver {
-  final Set<int> _expandedPosts = {};
+  Set<int> _expandedPosts = {};
   int? _currentPlayingIndex;
   VideoPlayerController? _videoController;
   final PageController _pageController = PageController();
@@ -34,7 +36,7 @@ class _HomePostsScreenState extends State<HomePostsScreen>
   bool _hasMore = true;
   bool _isLoadingMore = false;
   bool _isPageTransitioning = false;
-  final Map<int, VideoPlayerController> _preloadedControllers = {};
+  Map<int, VideoPlayerController> _preloadedControllers = {};
   bool _isSearching = false;
   String _searchQuery = '';
 
@@ -48,17 +50,22 @@ class _HomePostsScreenState extends State<HomePostsScreen>
 
     _debounce = Timer(const Duration(milliseconds: 400), () async {
       if (query.trim().length < 2) {
-        if (!mounted) return;
-        setState(() => _searchResults = []);
+        setState(() {
+          _searchResults = [];
+        });
         return;
       }
+
       try {
         final response = await PostService.searchPosts(query);
-        if (!mounted) return;
-        setState(() => _searchResults = response);
+        setState(() {
+          _searchResults = response ?? [];
+        });
       } catch (e) {
-        if (!mounted) return;
-        setState(() => _searchResults = []);
+        print('Search error: $e');
+        setState(() {
+          _searchResults = [];
+        });
       }
     });
   }
@@ -115,15 +122,15 @@ class _HomePostsScreenState extends State<HomePostsScreen>
   Future<void> _preloadVideo(int index) async {
     if (_preloadedControllers.containsKey(index) ||
         index < 0 ||
-        index >= _posts.length) {
+        index >= _posts.length)
       return;
-    }
 
     final post = _posts[index];
     if (post['asset'].toString().endsWith('.mp4')) {
-      final controller = post['asset'].toString().startsWith('http')
-          ? VideoPlayerController.networkUrl(Uri.parse(post['asset']))
-          : VideoPlayerController.asset(post['asset']);
+      final controller =
+          post['asset'].toString().startsWith('http')
+              ? VideoPlayerController.network(post['asset'])
+              : VideoPlayerController.asset(post['asset']);
 
       try {
         await controller.initialize();
@@ -165,7 +172,7 @@ class _HomePostsScreenState extends State<HomePostsScreen>
     else if (isVideo) {
       final controller =
           post['asset'].toString().startsWith('http')
-              ? VideoPlayerController.networkUrl(Uri.parse(post['asset']))
+              ? VideoPlayerController.network(post['asset'])
               : VideoPlayerController.asset(post['asset']);
 
       try {
@@ -353,84 +360,76 @@ class _HomePostsScreenState extends State<HomePostsScreen>
   }
 
   Future<void> _unlockTier(
-      BuildContext context,
-      Map<String, dynamic> post,
-      int index,
-      Map<String, dynamic> tier,
-      ) async {
-    // Cache things that read the widget tree BEFORE any awaits
-    final messenger = ScaffoldMessenger.of(context);
+    BuildContext context,
+    Map<String, dynamic> post,
+    int index,
+    Map<String, dynamic> tier,
+  ) async {
     final userProvider = Provider.of<UserProvider>(context, listen: false);
+    final cost = tier['credits'];
+    final tierId = tier['id'];
+    final postId = post['id'];
+    final isUnlocked = tier['unlocked'] == true;
 
-    final int cost = tier['credits'] as int;
-    final int tierId = tier['id'] as int;
-    final int postId = post['id'] as int;
-    final bool isUnlocked = tier['unlocked'] == true;
-
-    // Early return uses cached messenger (safe)
+    // 🟡 Skip deduction if already unlocked
     if (!isUnlocked && userProvider.credits < cost) {
-      messenger.showSnackBar(const SnackBar(content: Text('Not enough credits!')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Not enough credits!')));
       return;
     }
 
-    try {
-      final result = await PostService.unlockTier(postId: postId, tierId: tierId);
+    final result = await PostService.unlockTier(postId: postId, tierId: tierId);
 
-      if (!mounted) return; // widget might have been disposed while awaiting
+    if (result['success']) {
+      final asset = result['unblurredAsset'];
 
-      if (result['success'] == true) {
-        final String asset = result['unblurredAsset'] as String;
-
-        if (!isUnlocked) {
-          userProvider.updateCredits(userProvider.credits - cost);
-        }
-
-        if (!mounted) return;
-        if (index >= 0 && index < _posts.length) {
-          setState(() {
-            _posts[index]['locked'] = false;
-            _posts[index]['asset'] = asset;
-          });
-        }
-
-        // If currently playing, rewire the controller
-        if (_currentPlayingIndex == index && asset.endsWith('.mp4')) {
-          final oldPosition = _videoController?.value.position ?? Duration.zero;
-
-          // Pause/dispose old controller
-          await _videoController?.pause();
-          await _videoController?.dispose();
-
-          // Create new controller
-          final isNetwork = asset.startsWith('http');
-          _videoController = isNetwork
-              ? VideoPlayerController.networkUrl(Uri.parse(asset)) // ✅ Uri.parse
-              : VideoPlayerController.asset(asset);
-
-          await _videoController!.initialize();
-
-          if (oldPosition < _videoController!.value.duration) {
-            await _videoController!.seekTo(oldPosition);
-          }
-          _videoController!.setLooping(true);
-          await _videoController!.play();
-
-          if (!mounted) return;
-          setState(() {}); // reflect the new controller state
-        }
-
-        messenger.showSnackBar(
-          SnackBar(content: Text(isUnlocked ? 'Asset loaded' : 'Unlocked for $cost credits')),
-        );
-      } else {
-        messenger.showSnackBar(const SnackBar(content: Text('Unlock failed.')));
+      if (!isUnlocked) {
+        userProvider.updateCredits(userProvider.credits - (cost as int));
       }
-    } catch (e) {
-      if (!mounted) return;
-      messenger.showSnackBar(SnackBar(content: Text('Error: $e')));
+
+      setState(() {
+        _posts[index]['locked'] = false;
+        _posts[index]['asset'] = asset;
+      });
+
+      if (_currentPlayingIndex == index && asset.endsWith('.mp4')) {
+        final oldPosition = _videoController?.value.position ?? Duration.zero;
+
+        final newController =
+            asset.startsWith('http')
+                ? VideoPlayerController.networkUrl(asset)
+                : VideoPlayerController.asset(asset);
+
+        await _videoController?.pause();
+        await _videoController?.dispose();
+
+        _videoController = newController;
+        await _videoController!.initialize();
+
+        if (oldPosition < _videoController!.value.duration) {
+          await _videoController!.seekTo(oldPosition);
+        }
+
+        _videoController!.setLooping(true);
+        await _videoController!.play();
+
+        setState(() {});
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            isUnlocked ? 'Asset loaded' : 'Unlocked for $cost credits',
+          ),
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Unlock failed.')));
     }
   }
-
 
   void _showCommentsSheet(BuildContext context, int postId) {
     showModalBottomSheet(
@@ -595,18 +594,15 @@ class _HomePostsScreenState extends State<HomePostsScreen>
                 top: 40,
                 left: 0,
                 right: 0,
-                child: SizedBox(
+                child: Container(
                   width: MediaQuery.of(context).size.width,
-                  child: AspectRatio(
-                    aspectRatio: 9 / 16,
-                    child: mediaWidget,
-                  ),
+                  child: AspectRatio(aspectRatio: 9 / 16, child: mediaWidget),
                 ),
               ),
 
               // ✅ Overlay to darken video/image
               Positioned.fill(
-                child: Container(color: Colors.black.withValues(alpha: 0.3)),
+                child: Container(color: Colors.black.withOpacity(0.3)),
               ),
 
               // Bottom left: Text info
@@ -651,7 +647,7 @@ class _HomePostsScreenState extends State<HomePostsScreen>
 
                         String displayText = combinedText;
                         if (shouldTruncate && !isExpanded) {
-                          displayText = '${combinedText.substring(0, 50)}... ';
+                          displayText = combinedText.substring(0, 50) + '... ';
                         }
 
                         return GestureDetector(
@@ -712,10 +708,10 @@ class _HomePostsScreenState extends State<HomePostsScreen>
                             SvgPicture.asset(
                               'assets/icons/eye.svg',
                               height: 24,
-                              colorFilter: ColorFilter.mode(
-                                post['locked'] == false ? AppTheme.accentColor : Colors.white,
-                                BlendMode.srcIn,
-                              ),
+                              color:
+                                  post['locked'] == false
+                                      ? AppTheme.accentColor
+                                      : Colors.white,
                             ),
                             SizedBox(height: 4),
                             Text(
@@ -732,37 +728,34 @@ class _HomePostsScreenState extends State<HomePostsScreen>
 
                     GestureDetector(
                       onTap: () async {
-                        // cache before any await
-                        final messenger = ScaffoldMessenger.of(context);
-
-                        final postId = post['id'] as int;
+                        final postId = post['id'];
                         final isLiked = post['liked'] == true;
 
-                        // optimistic update
+                        // Optimistic update
                         setState(() {
                           post['liked'] = !isLiked;
-                          post['likes'] = isLiked
-                              ? (post['likes'] ?? 1) - 1
-                              : (post['likes'] ?? 0) + 1;
+                          post['likes'] =
+                              isLiked
+                                  ? (post['likes'] ?? 1) - 1
+                                  : (post['likes'] ?? 0) + 1;
                         });
 
-                        final result = await PostService.toggleLike(postId: postId);
-                        if (!mounted) return; // widget might have been disposed
+                        final result = await PostService.toggleLike(
+                          postId: postId,
+                        );
 
-                        final success = result['success'] as bool? ?? false;
-                        if (!success) {
-                          // revert if failed
-                          if (!mounted) return;
+                        if (result == null || result['success'] != true) {
+                          // Revert if failed
                           setState(() {
                             post['liked'] = isLiked;
-                            post['likes'] = isLiked
-                                ? (post['likes'] ?? 0) + 1
-                                : (post['likes'] ?? 1) - 1;
+                            post['likes'] =
+                                isLiked
+                                    ? (post['likes'] ?? 0) + 1
+                                    : (post['likes'] ?? 1) - 1;
                           });
 
-                          // use cached messenger (no ancestor lookup after await)
-                          messenger.showSnackBar(
-                            const SnackBar(content: Text('Failed to update like.')),
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Failed to update like.')),
                           );
                         }
                       },
@@ -771,15 +764,15 @@ class _HomePostsScreenState extends State<HomePostsScreen>
                           SvgPicture.asset(
                             'assets/icons/like.svg',
                             height: 26,
-                            colorFilter: ColorFilter.mode(
-                              post['liked'] == true ? AppTheme.accentColor : Colors.white,
-                              BlendMode.srcIn,
-                            ),
+                            color:
+                                post['liked'] == true
+                                    ? AppTheme.accentColor
+                                    : Colors.white,
                           ),
-                          const SizedBox(height: 4),
+                          SizedBox(height: 4),
                           Text(
                             '${post['likes'] ?? 0}',
-                            style: const TextStyle(color: Colors.white, fontSize: 12),
+                            style: TextStyle(color: Colors.white, fontSize: 12),
                           ),
                         ],
                       ),
@@ -796,10 +789,7 @@ class _HomePostsScreenState extends State<HomePostsScreen>
                           SvgPicture.asset(
                             'assets/icons/comment.svg',
                             height: 24,
-                            colorFilter: const ColorFilter.mode(
-                              Colors.white,
-                              BlendMode.srcIn,
-                            ),
+                            color: Colors.white,
                           ),
                           SizedBox(height: 4),
                           Text(
@@ -815,37 +805,36 @@ class _HomePostsScreenState extends State<HomePostsScreen>
                     // 🔖 Bookmarks
                     GestureDetector(
                       onTap: () async {
-                        // cache before any await
-                        final messenger = ScaffoldMessenger.of(context);
-
-                        final int postId = post['id'] as int;
-                        final bool isBookmarked = post['bookmarked'] == true;
+                        final postId = post['id'];
+                        final isBookmarked = post['bookmarked'] == true;
 
                         // Optimistic update
                         setState(() {
                           post['bookmarked'] = !isBookmarked;
-                          post['bookmarks'] = isBookmarked
-                              ? (post['bookmarks'] ?? 1) - 1
-                              : (post['bookmarks'] ?? 0) + 1;
+                          post['bookmarks'] =
+                              isBookmarked
+                                  ? (post['bookmarks'] ?? 1) - 1
+                                  : (post['bookmarks'] ?? 0) + 1;
                         });
 
-                        final result = await PostService.toggleBookmark(postId: postId);
-                        if (!mounted) return;
+                        final result = await PostService.toggleBookmark(
+                          postId: postId,
+                        );
 
-                        final bool success = result['success'] as bool? ?? false;
-                        if (!success) {
-                          if (!mounted) return;
+                        if (result == null || result['success'] != true) {
                           // Revert if failed
                           setState(() {
                             post['bookmarked'] = isBookmarked;
-                            post['bookmarks'] = isBookmarked
-                                ? (post['bookmarks'] ?? 0) + 1
-                                : (post['bookmarks'] ?? 1) - 1;
+                            post['bookmarks'] =
+                                isBookmarked
+                                    ? (post['bookmarks'] ?? 0) + 1
+                                    : (post['bookmarks'] ?? 1) - 1;
                           });
 
-                          // use cached messenger (no ancestor lookup after await)
-                          messenger.showSnackBar(
-                            const SnackBar(content: Text('Failed to update bookmark.')),
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Failed to update bookmark.'),
+                            ),
                           );
                         }
                       },
@@ -854,15 +843,15 @@ class _HomePostsScreenState extends State<HomePostsScreen>
                           SvgPicture.asset(
                             'assets/icons/bookmark.svg',
                             height: 22,
-                            colorFilter: ColorFilter.mode(
-                              post['bookmarked'] == true ? AppTheme.accentColor : Colors.white,
-                              BlendMode.srcIn,
-                            ),
+                            color:
+                                post['bookmarked'] == true
+                                    ? AppTheme.accentColor
+                                    : Colors.white,
                           ),
-                          const SizedBox(height: 4),
+                          SizedBox(height: 4),
                           Text(
                             '${post['bookmarks'] ?? 0}',
-                            style: const TextStyle(color: Colors.white, fontSize: 12),
+                            style: TextStyle(color: Colors.white, fontSize: 12),
                           ),
                         ],
                       ),
@@ -1060,7 +1049,7 @@ class _HomePostsScreenState extends State<HomePostsScreen>
               right: 64, // leave space for the icon
               child: TextField(
                 autofocus: true,
-                onChanged: (value) => _onSearchChanged(value),
+                onChanged: (value) => _onSearchChanged(value ?? ''),
                 style: TextStyle(color: Colors.white),
                 decoration: InputDecoration(
                   hintText: 'Search...',

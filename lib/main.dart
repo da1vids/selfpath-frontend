@@ -160,6 +160,14 @@ class _MyAppState extends State<MyApp> {
         );
       }
     });
+
+    FirebaseMessaging.instance.onTokenRefresh.listen((newToken) async {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('fcm_token', newToken);
+
+      // Use the override so the exact refreshed token is sent
+      await AuthService().sendDeviceToken(tokenOverride: newToken);
+    });
   }
 
   @override
