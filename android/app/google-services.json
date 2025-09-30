@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "687809545820",
+    "project_id": "blurrly",
+    "storage_bucket": "blurrly.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:687809545820:android:8c5dca435a9cc23efa4899",
+        "android_client_info": {
+          "package_name": "com.example.my_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDneeOQ0FkrauEc0nOJ8y51D6zeRY06hCY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
