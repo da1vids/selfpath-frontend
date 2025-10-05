@@ -10,15 +10,15 @@ class StyledInput extends StatelessWidget {
   final FocusNode? focusNode;
 
   const StyledInput({
-    Key? key,
+    super.key,
     required this.label,
     required this.icon,
     required this.controller,
     this.obscure = false,
     this.suffixIcon,
-    this.onChanged, // <-- Add this line
+    this.onChanged,
     this.focusNode,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

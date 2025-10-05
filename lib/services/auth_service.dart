@@ -32,25 +32,19 @@ class AuthService {
       }),
     );
 
-    print("🔐 Login response: ${response.statusCode} ${response.body}");
-
     final data = jsonDecode(response.body);
     final token = data['data']?['token'] as String?;
     final user  = data['data']?['user'];
-
-    print("🔐 Token: $token");
 
     if (response.statusCode == 200 && token != null) {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('token', token);
       if (user != null) {
         await prefs.setString('user', jsonEncode(user));
-        print("🔐 User set");
       }
-      // 🚀 send device token now that we are authenticated
+      // send device token now that we are authenticated
       await sendDeviceToken();
 
-      print("🔐 Login successfully");
       return {'success': true, 'message': 'Login successful', 'user': user};
     }
 
@@ -264,7 +258,6 @@ class AuthService {
     if (response.statusCode == 200) {
       return true;
     } else {
-      print("Logout failed: ${response.body}");
       return false;
     }
   }
@@ -332,7 +325,6 @@ class AuthService {
     // API auth token
     final authToken = prefs.getString('token');
     if (authToken == null || authToken.isEmpty) {
-      print('🔕 No auth token — not sending device token.');
       return;
     }
 
@@ -342,7 +334,6 @@ class AuthService {
     fcmToken ??= await FirebaseMessaging.instance.getToken();
 
     if (fcmToken == null || fcmToken.isEmpty) {
-      print('🔕 No FCM token — not sending device token.');
       return;
     }
 
@@ -368,11 +359,10 @@ class AuthService {
         },
         body: jsonEncode(body),
       );
-      print('📡 Device token sent: ${resp.statusCode} ${resp.body}');
       // persist last-sent token
       await prefs.setString('fcm_token', fcmToken);
     } catch (e) {
-      print('❌ Failed to send device token: $e');
+
     }
   }
 }

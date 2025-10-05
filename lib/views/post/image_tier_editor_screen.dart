@@ -456,8 +456,6 @@ class _ImageTierEditorScreenState extends State<ImageTierEditorScreen>
       '${(await getTemporaryDirectory()).path}/blurred_final.png',
     );
     await file.writeAsBytes(buffer, flush: true);
-
-    print("✅ Final blurred image saved to: ${file.path}");
     return file;
   }
 
@@ -949,8 +947,6 @@ class _ImageTierEditorScreenState extends State<ImageTierEditorScreen>
                               });
                             }
 
-                            print("Free tier uploaded: $response");
-
                             await showDialog(
                               context: context,
                               builder:
@@ -992,7 +988,6 @@ class _ImageTierEditorScreenState extends State<ImageTierEditorScreen>
                               brushSize: _brushSize,
                               drawnPoints: _drawnPoints,
                             );
-                            print("Tier uploaded: $response");
                           }
 
                           setState(() {

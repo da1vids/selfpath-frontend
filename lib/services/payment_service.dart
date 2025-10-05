@@ -37,8 +37,6 @@ class PaymentService {
       final data = json.decode(response.body);
       final clientSecret = data['data']?['client_secret'];
 
-      print('Client secret: $clientSecret');
-
       await Stripe.instance.initPaymentSheet(
         paymentSheetParameters: SetupPaymentSheetParameters(
           paymentIntentClientSecret: clientSecret,
@@ -50,7 +48,6 @@ class PaymentService {
 
       return null; // no error
     } catch (e) {
-      print("Payment error: $e");
       return "❌ Payment failed";
     }
   }

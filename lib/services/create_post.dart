@@ -111,10 +111,8 @@ class CreatePostService {
       final tierId = payload['tier_id'];
       final postId = payload['post_id'];
 
-      print('Tier uploaded. tier_id=$tierId post_id=$postId');
       return payload; // or return {'tier_id': tierId, 'post_id': postId};
     } else {
-      print('Upload failed: ${res.statusCode}  body=$body');
       return null;
     }
   }

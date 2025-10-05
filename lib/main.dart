@@ -50,7 +50,6 @@ void main() async {
   await messaging.requestPermission();
 
   String? fcmToken = await messaging.getToken();
-  print('🔥 FCM Token: $fcmToken');
 
   final prefs = await SharedPreferences.getInstance();
   await prefs.setString('fcm_token', fcmToken ?? '');

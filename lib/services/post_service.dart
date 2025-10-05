@@ -63,7 +63,6 @@ class PostService {
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
-      print('Posts: $data');
       return {
         'posts': List<Map<String, dynamic>>.from(data['data']?['posts']),
         'hasMore': data['hasMore'] ?? false,
@@ -186,7 +185,6 @@ class PostService {
     );
 
     final body = jsonDecode(response.body);
-    print('Toggle comment like: $body');
     return body;
   }
 

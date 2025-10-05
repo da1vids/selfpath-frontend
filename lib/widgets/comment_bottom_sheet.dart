@@ -763,7 +763,7 @@ class _CommentBottomSheetState extends State<CommentBottomSheet> {
                                   ),
                                 ),
                               );
-                            }).toList(),
+                            }),
                             if (replies.length > 2 && !showAllReplies)
                               Padding(
                                 padding: const EdgeInsets.only(

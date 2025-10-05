@@ -576,7 +576,6 @@ class _HomePostsScreenState extends State<HomePostsScreen>
 
         return GestureDetector(
           onTap: () {
-            print("Video tapped");
             if (_videoController != null &&
                 _videoController!.value.isInitialized) {
               setState(() {
