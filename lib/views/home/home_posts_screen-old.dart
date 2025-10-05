@@ -57,7 +57,7 @@ class _HomePostsScreenState extends State<HomePostsScreen>
       try {
         final response = await PostService.searchPosts(query);
         setState(() {
-          _searchResults = response ?? [];
+          _searchResults = response;
         });
       } catch (e) {
         print('Search error: $e');
@@ -891,7 +891,7 @@ class _HomePostsScreenState extends State<HomePostsScreen>
               right: 64, // leave space for the icon
               child: TextField(
                 autofocus: true,
-                onChanged: (value) => _onSearchChanged(value ?? ''),
+                onChanged: (value) => _onSearchChanged(value),
                 style: TextStyle(color: Colors.white),
                 decoration: InputDecoration(
                   hintText: 'Search...',

@@ -2,8 +2,6 @@
 import 'package:flutter/material.dart';
 import '../../providers/user_provider.dart';
 import 'package:provider/provider.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
 import '../../services/post_service.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:video_player/video_player.dart';
@@ -16,7 +14,7 @@ class HomePostsScreen extends StatefulWidget {
   final int? creatorId;
   final String? tag;
 
-  HomePostsScreen({this.creatorId, this.tag});
+  const HomePostsScreen({super.key, this.creatorId, this.tag});
 
   @override
   _HomePostsScreenState createState() => _HomePostsScreenState();
@@ -59,7 +57,7 @@ class _HomePostsScreenState extends State<HomePostsScreen>
       try {
         final response = await PostService.searchPosts(query);
         setState(() {
-          _searchResults = response ?? [];
+          _searchResults = response;
         });
       } catch (e) {
         print('Search error: $e');
@@ -1049,7 +1047,7 @@ class _HomePostsScreenState extends State<HomePostsScreen>
               right: 64, // leave space for the icon
               child: TextField(
                 autofocus: true,
-                onChanged: (value) => _onSearchChanged(value ?? ''),
+                onChanged: (value) => _onSearchChanged(value),
                 style: TextStyle(color: Colors.white),
                 decoration: InputDecoration(
                   hintText: 'Search...',

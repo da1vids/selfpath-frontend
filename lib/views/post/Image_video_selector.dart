@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:image_picker/image_picker.dart';
@@ -9,8 +8,10 @@ import 'dart:typed_data';
 class ImageVideoSelector extends StatefulWidget {
   final Function(String mediaType, XFile file) onMediaSelected;
 
-  const ImageVideoSelector({Key? key, required this.onMediaSelected})
-    : super(key: key);
+  const ImageVideoSelector({
+    super.key,
+    required this.onMediaSelected,
+  });
 
   @override
   State<ImageVideoSelector> createState() => _ImageVideoSelectorState();

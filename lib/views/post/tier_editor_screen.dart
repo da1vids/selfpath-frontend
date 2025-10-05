@@ -16,7 +16,7 @@ class TierEditorScreen extends StatefulWidget {
   final String mediaType; // "image" or "video"
   final XFile file;
 
-  TierEditorScreen({required this.mediaType, required this.file});
+  const TierEditorScreen({super.key, required this.mediaType, required this.file});
 
   @override
   _TierEditorScreenState createState() => _TierEditorScreenState();
@@ -24,7 +24,7 @@ class TierEditorScreen extends StatefulWidget {
 
 class _TierEditorScreenState extends State<TierEditorScreen> {
   late VideoPlayerController _videoController;
-  List<Tier> _tiers = [];
+  final List<Tier> _tiers = [];
   double _duration = 60;
 
   @override

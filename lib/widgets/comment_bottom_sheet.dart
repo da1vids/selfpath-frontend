@@ -11,6 +11,7 @@ class CommentBottomSheet extends StatefulWidget {
   final VoidCallback? onCommentDeleted;
 
   const CommentBottomSheet({
+    super.key,
     required this.postId,
     this.onCommentPosted,
     this.onCommentDeleted,
@@ -23,7 +24,7 @@ class CommentBottomSheet extends StatefulWidget {
 class _CommentBottomSheetState extends State<CommentBottomSheet> {
   List<Map<String, dynamic>> _comments = [];
   final TextEditingController _controller = TextEditingController();
-  bool _showEmoji = false;
+  final bool _showEmoji = false;
   int? _replyTo;
   int _offset = 0;
   bool _isLoadingMore = false;

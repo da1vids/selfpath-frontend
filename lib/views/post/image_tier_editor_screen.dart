@@ -1,11 +1,8 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
 import 'dart:ui' as ui;
 import 'dart:async';
-import '../../../theme/theme.dart';
 import '../../../services/create_post.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:image_cropper/image_cropper.dart';
@@ -26,7 +23,7 @@ class ImageTier {
 class ImageTierEditorScreen extends StatefulWidget {
   final XFile file;
 
-  ImageTierEditorScreen({required this.file});
+  const ImageTierEditorScreen({super.key, required this.file});
 
   @override
   _ImageTierEditorScreenState createState() => _ImageTierEditorScreenState();
@@ -36,7 +33,7 @@ class _ImageTierEditorScreenState extends State<ImageTierEditorScreen>
     with WidgetsBindingObserver {
   List<ImageTier> _tiers = [];
   bool _isUploading = false;
-  Set<String> _selectedRegions = {};
+  final Set<String> _selectedRegions = {};
   List<Offset> _drawnPoints = [];
 
   bool get isSelectMode => _selectedRegions.contains('draw');
@@ -229,12 +226,12 @@ class _ImageTierEditorScreenState extends State<ImageTierEditorScreen>
                         });
                       }
                     },
-                    child: Text("Continue"),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.white,
                       foregroundColor: Colors.black,
                       minimumSize: Size(double.infinity, 45),
                     ),
+                    child: Text("Continue"),
                   ),
                 ],
               );
