@@ -6,6 +6,17 @@ class AppTheme {
   static const Color lightBg = Color(0xFFFFFFFF);
   static const Color fieldFillDark = Color(0xFF1D1D1D);
   static const Color fieldFillLight = Color(0xFFF2F2F2);
+  static const Color primaryColor = Color(0xFFAE0082);
+  static const Color secondaryColor = Color(0xFFFF005E);
+  static const Color thirdColor = Color(0xFF5E00FF);
+  static const Color whiteColor = Color(0xFFFFFFFF);
+  static const Color lightGrayColor = Color(0xFFBABABA);
+
+  static const Color eyeColor = primaryColor;
+  static const Color likeColor = secondaryColor;
+  static const Color bookmarkColor = thirdColor;
+  static const Color readMoreColor = lightGrayColor;
+
 
   static ThemeData get darkTheme {
     return ThemeData(
@@ -14,12 +25,12 @@ class AppTheme {
       primaryColor: accentColor,
       fontFamily: 'Roboto',
       canvasColor: darkBg,
-      dialogBackgroundColor: darkBg,
       appBarTheme: AppBarTheme(backgroundColor: darkBg),
 
       inputDecorationTheme: InputDecorationTheme(
-        filled: true,
-        fillColor: fieldFillDark,
+        hintStyle: TextStyle(
+          color: Colors.grey[400],
+        ),
         labelStyle: TextStyle(color: Colors.white38),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(50),
@@ -40,7 +51,7 @@ class AppTheme {
       textTheme: TextTheme(
         bodyMedium: TextStyle(color: Colors.white70),
         bodyLarge: TextStyle(color: Colors.white),
-      ),
+      ), dialogTheme: DialogThemeData(backgroundColor: darkBg),
     );
   }
 

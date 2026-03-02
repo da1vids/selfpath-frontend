@@ -374,7 +374,7 @@ class _CommentBottomSheetState extends State<CommentBottomSheet> {
                                                     color:
                                                         comment['liked'] == true
                                                             ? AppTheme
-                                                                .accentColor
+                                                                .likeColor
                                                             : Colors.grey,
                                                   ),
                                                 ),
@@ -649,7 +649,7 @@ class _CommentBottomSheetState extends State<CommentBottomSheet> {
                                                             reply['liked'] ==
                                                                     true
                                                                 ? AppTheme
-                                                                    .accentColor
+                                                                    .likeColor
                                                                 : Colors.grey,
                                                         size: 16,
                                                       ),
@@ -806,16 +806,24 @@ class _CommentBottomSheetState extends State<CommentBottomSheet> {
                           borderRadius: BorderRadius.circular(24),
                           border: Border.all(color: Colors.grey[400]!),
                         ),
-                        padding: EdgeInsets.fromLTRB(20, 0, 0, 0),
+                        padding: EdgeInsets.fromLTRB(15, 0, 0, 0),
                         child: TextField(
                           controller: _controller,
+                          textCapitalization: TextCapitalization.sentences,
+                          cursorColor: Colors.grey[600],
+                          style: TextStyle(
+                            color: Colors.grey[800],
+                          ),
                           decoration: InputDecoration(
                             hintText: 'Add a comment...',
                             border: InputBorder.none,
                             isDense: true,
                             contentPadding: EdgeInsets.symmetric(vertical: 12),
                             suffixIcon: IconButton(
-                              icon: Icon(Icons.send),
+                              icon: Icon(
+                                  Icons.send,
+                                  color: Colors.grey[800],
+                              ),
                               onPressed: _postComment,
                             ),
                             enabledBorder: OutlineInputBorder(

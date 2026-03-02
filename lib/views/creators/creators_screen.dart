@@ -56,7 +56,7 @@ class _CreatorsScreenState extends State<CreatorsScreen> {
     final result = await CreatorService.toggleFollow(creator.id);
 
     // Revert if failed
-    if (result == null || !result.success) {
+    if (result == null || !result.success || !result.followed) {
       setState(() {
         _creators[index] = creator;
       });

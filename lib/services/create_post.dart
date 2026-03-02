@@ -48,7 +48,6 @@ class CreatePostService {
     required String description,
     required double blurSigma,         // ✅ required by backend
     required double brushSize,         // ✅ required by backend
-    File? mainPostAsset,
     List<Offset>? drawnPoints,
   }) async {
     final uri = Uri.parse('$_baseUrl/api/post/upload-tier');
@@ -75,21 +74,6 @@ class CreatePostService {
 
     if (postId != null && postId != 0) {
       req.fields['post_id'] = postId.toString();
-    } else {
-      if (mainPostAsset == null) {
-        throw ArgumentError('mainPostAsset is required when postId is null');
-      }
-      req.files.add(await http.MultipartFile.fromPath('main_post_asset', mainPostAsset.path));
-    }
-
-    if (mainPostAsset != null) {
-      req.files.add(
-        await http.MultipartFile.fromPath(
-          'main_post_asset',
-          mainPostAsset.path,
-          contentType: MediaType('image', 'jpeg'),
-        ),
-      );
     }
 
     if (drawnPoints != null) {
@@ -114,6 +98,58 @@ class CreatePostService {
       return payload; // or return {'tier_id': tierId, 'post_id': postId};
     } else {
       return null;
+    }
+  }
+
+  static Future<Map<String, dynamic>> publishPost({
+    required int postId,
+  }) async {
+    try {
+      final url = Uri.parse('$_baseUrl/api/post/publish');
+
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+
+      if (token == null) {
+        return {
+          'success': false,
+          'message': 'You are not logged in. Please log in and try again.',
+        };
+      }
+
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({'post_id': postId}),
+      );
+
+      Map<String, dynamic>? data;
+
+      try {
+        data = jsonDecode(response.body);
+      } catch (_) {
+        data = {};
+      }
+
+      final success = response.statusCode == 200 || response.statusCode == 201;
+      final message = data?['data']?['message'] ??
+          (success
+              ? 'Post published successfully.'
+              : 'There was an error publishing the post. Please try again.');
+
+      return {
+        'success': success ? (data?['success'] ?? true) : false,
+        'message': message,
+      };
+    } catch (e) {
+      // Catch network, JSON, or unexpected errors
+      return {
+        'success': false,
+        'message': 'An unexpected error occurred: ${e.toString()}',
+      };
     }
   }
 }

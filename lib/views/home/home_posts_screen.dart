@@ -379,11 +379,13 @@ class _HomePostsScreenState extends State<HomePostsScreen>
       if (!mounted) return; // widget might have been disposed while awaiting
 
       if (result['success'] == true) {
-        final String asset = result['unblurredAsset'] as String;
+        final String asset = result['asset'] as String;
 
-        if (!isUnlocked) {
-          userProvider.updateCredits(userProvider.credits - cost);
-        }
+        userProvider.updateCredits(result['credits']);
+
+        // if (!isUnlocked) {
+        //   userProvider.updateCredits(userProvider.credits - cost);
+        // }
 
         if (!mounted) return;
         if (index >= 0 && index < _posts.length) {
@@ -420,7 +422,8 @@ class _HomePostsScreenState extends State<HomePostsScreen>
         }
 
         messenger.showSnackBar(
-          SnackBar(content: Text(isUnlocked ? 'Asset loaded' : 'Unlocked for $cost credits')),
+          SnackBar(content: Text(result['message'])),
+          // SnackBar(content: Text(isUnlocked ? 'Asset loaded' : 'Unlocked for $cost credits')),
         );
       } else {
         messenger.showSnackBar(const SnackBar(content: Text('Unlock failed.')));
@@ -678,8 +681,8 @@ class _HomePostsScreenState extends State<HomePostsScreen>
                                         TextSpan(
                                           text: 'Read more',
                                           style: TextStyle(
-                                            color: Colors.blue[200],
-                                            fontWeight: FontWeight.bold,
+                                            color: AppTheme.readMoreColor,
+                                            fontWeight: FontWeight.normal,
                                           ),
                                         ),
                                       ]
@@ -712,7 +715,7 @@ class _HomePostsScreenState extends State<HomePostsScreen>
                               'assets/icons/eye.svg',
                               height: 24,
                               colorFilter: ColorFilter.mode(
-                                post['locked'] == false ? AppTheme.accentColor : Colors.white,
+                                post['locked'] == false ? AppTheme.eyeColor : Colors.white,
                                 BlendMode.srcIn,
                               ),
                             ),
@@ -771,7 +774,7 @@ class _HomePostsScreenState extends State<HomePostsScreen>
                             'assets/icons/like.svg',
                             height: 26,
                             colorFilter: ColorFilter.mode(
-                              post['liked'] == true ? AppTheme.accentColor : Colors.white,
+                              post['liked'] == true ? AppTheme.likeColor : Colors.white,
                               BlendMode.srcIn,
                             ),
                           ),
@@ -854,7 +857,7 @@ class _HomePostsScreenState extends State<HomePostsScreen>
                             'assets/icons/bookmark.svg',
                             height: 22,
                             colorFilter: ColorFilter.mode(
-                              post['bookmarked'] == true ? AppTheme.accentColor : Colors.white,
+                              post['bookmarked'] == true ? AppTheme.bookmarkColor : Colors.white,
                               BlendMode.srcIn,
                             ),
                           ),

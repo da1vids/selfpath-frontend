@@ -29,8 +29,10 @@ class PostService {
       final data = jsonDecode(response.body);
       return {
         'success': data['success'],
-        'unblurredAsset':
-            data['data']?['unblurred_asset'], // <- map snake_case to camelCase
+        'asset':
+            data['data']?['asset'], // <- map snake_case to camelCase
+        'message': data['data']?['message'],
+        'credits': data['data']?['credits']
       };
     }
 
@@ -63,6 +65,7 @@ class PostService {
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
+      print('Posts $data');
       return {
         'posts': List<Map<String, dynamic>>.from(data['data']?['posts']),
         'hasMore': data['hasMore'] ?? false,
@@ -223,8 +226,8 @@ class PostService {
     );
 
     final data = jsonDecode(response.body);
-    if (data['success'] && data['posts'] is List) {
-      return List<Map<String, dynamic>>.from(data['posts']);
+    if (data['success'] && data['data']?['posts'] is List) {
+      return List<Map<String, dynamic>>.from(data['data']?['posts']);
     } else {
       return [];
     }

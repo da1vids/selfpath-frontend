@@ -100,7 +100,7 @@ class _ImageTierEditorScreenState extends State<ImageTierEditorScreen>
 
     File? selectedImage;
 
-    Future<void> _pickImage(ImageSource source) async {
+    Future<void> pickImage(ImageSource source) async {
       final picked = await ImagePicker().pickImage(source: source);
       if (picked != null) {
         selectedImage = File(picked.path);
@@ -135,6 +135,7 @@ class _ImageTierEditorScreenState extends State<ImageTierEditorScreen>
                   if (_tierCount > 0) ...[
                     TextField(
                       controller: labelController,
+                      textCapitalization: TextCapitalization.sentences,
                       style: TextStyle(color: Colors.white),
                       decoration: InputDecoration(
                         labelText: 'Title',
@@ -153,6 +154,7 @@ class _ImageTierEditorScreenState extends State<ImageTierEditorScreen>
                   SizedBox(height: 12),
                   TextField(
                     controller: descriptionController,
+                    textCapitalization: TextCapitalization.sentences,
                     style: TextStyle(color: Colors.white),
                     decoration: InputDecoration(
                       labelText: 'Description',
@@ -172,6 +174,7 @@ class _ImageTierEditorScreenState extends State<ImageTierEditorScreen>
                   if (_tierCount > 0) ...[
                     TextField(
                       controller: creditsController,
+                      textCapitalization: TextCapitalization.sentences,
                       style: TextStyle(color: Colors.white),
                       keyboardType: TextInputType.number,
                       decoration: InputDecoration(
@@ -485,9 +488,12 @@ class _ImageTierEditorScreenState extends State<ImageTierEditorScreen>
   }
 
   Future<void> _prepareImage() async {
+    // Capture navigator reference BEFORE awaiting
+    final nav = Navigator.of(context, rootNavigator: true);
+
     final cropped = await cropTo9by16(widget.file);
     if (cropped == null) {
-      Navigator.pop(context);
+      nav.pop();
       return;
     }
 
@@ -529,6 +535,48 @@ class _ImageTierEditorScreenState extends State<ImageTierEditorScreen>
 
     await _loadImage();
   }
+
+  Future<void> _onSkipAndPost() async {
+    if (_isUploading) return; // prevent double taps
+
+    if (_postId == null) {
+      // You need at least the first (free) tier uploaded so we have a postId
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Add at least the public preview first.')),
+      );
+      return;
+    }
+
+    setState(() => _isUploading = true);
+
+    try {
+      final res = await CreatePostService.publishPost(postId: _postId!);
+
+      if (!mounted) return;
+
+      final success = res['success'] == true;
+      final message = res['message'] ??
+          (success
+              ? 'Post published successfully.'
+              : 'There was an error publishing the post. Please try again.');
+
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+
+      if (success) {
+        // Close this flow (or navigate to your feed / post detail)
+        Navigator.pop(context, true); // return success to previous screen
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Unexpected error: $e')),
+      );
+    } finally {
+      if (mounted) setState(() => _isUploading = false);
+    }
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -662,6 +710,7 @@ class _ImageTierEditorScreenState extends State<ImageTierEditorScreen>
                                               ),
                                               SizedBox(height: 8),
                                               TextField(
+                                                textCapitalization: TextCapitalization.sentences,
                                                 keyboardType:
                                                     TextInputType.number,
                                                 style: TextStyle(
@@ -933,7 +982,6 @@ class _ImageTierEditorScreenState extends State<ImageTierEditorScreen>
                               postId: 0,
                               label: label,
                               description: description,
-                              mainPostAsset: resizedMainImage,
                               blurSigma: _blurSigma,
                               brushSize: _brushSize,
                               drawnPoints: _drawnPoints,
@@ -983,7 +1031,6 @@ class _ImageTierEditorScreenState extends State<ImageTierEditorScreen>
                               postId: _postId ?? 0,
                               label: label,
                               description: description,
-                              mainPostAsset: null,
                               blurSigma: _blurSigma,
                               brushSize: _brushSize,
                               drawnPoints: _drawnPoints,
@@ -1012,23 +1059,14 @@ class _ImageTierEditorScreenState extends State<ImageTierEditorScreen>
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 12),
                         child: TextButton(
-                          onPressed: () {
-                            // Finalize post and navigate away
-                            print(
-                              "Skipping additional tiers. Finalizing post...",
-                            );
-                            // TODO: Call CreatePostService.finalizePost() or navigate
-                            Navigator.pop(context); // Placeholder
-                          },
-                          child: Text(
+                          onPressed: _isUploading ? null : _onSkipAndPost,
+                          child: const Text(
                             "Skip & Post",
-                            style: TextStyle(
-                              color: Colors.white70,
-                              fontSize: 16,
-                            ),
+                            style: TextStyle(color: Colors.white70, fontSize: 16),
                           ),
                         ),
                       ),
+
                   ],
                 ),
               ),

@@ -49,8 +49,9 @@ class CreatorService {
       final data = json.decode(response.body);
       return FollowToggleResult(
         success: data['success'] ?? false,
-        followed: data['followed'],
-        followersCount: data['followers_count'],
+        followed: data['data']?['followed'],
+        followersCount: data['data']?['followers_count'],
+        message: data['message'] ?? '',
       );
     }
 
@@ -62,10 +63,12 @@ class FollowToggleResult {
   final bool success;
   final bool followed;
   final int followersCount;
+  final String message;
 
   FollowToggleResult({
     required this.success,
     required this.followed,
     required this.followersCount,
+    required this.message,
   });
 }

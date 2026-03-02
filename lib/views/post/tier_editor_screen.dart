@@ -138,7 +138,7 @@ class _TierEditorScreenState extends State<TierEditorScreen> {
                       });
                     },
                   ),
-                  trailing: Container(
+                  trailing: SizedBox(
                     width: 60,
                     child: TextField(
                       keyboardType: TextInputType.number,
