@@ -3,6 +3,7 @@
 import 'package:firebase_core/firebase_core.dart' show FirebaseOptions;
 import 'package:flutter/foundation.dart'
     show defaultTargetPlatform, kIsWeb, TargetPlatform;
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 /// Default [FirebaseOptions] for use with your Firebase apps.
 ///
@@ -40,8 +41,8 @@ class DefaultFirebaseOptions {
     }
   }
 
-  static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyDqa6hYNf1NpTC39YJepaELuXF0jKfbrXg',
+  static final FirebaseOptions web = FirebaseOptions(
+    apiKey: dotenv.env['FIREBASE_API_KEY']!,
     appId: '1:687809545820:web:8d4f0a16e6948f89fa4899',
     messagingSenderId: '687809545820',
     projectId: 'blurrly',
@@ -50,8 +51,8 @@ class DefaultFirebaseOptions {
     measurementId: 'G-EVDDQ2DGS9',
   );
 
-  static const FirebaseOptions macos = FirebaseOptions(
-    apiKey: 'AIzaSyBVXcJukraMkxXVLmy0gXIp3uCkjDAmx3M',
+  static final FirebaseOptions macos = FirebaseOptions(
+    apiKey: dotenv.env['FIREBASE_API_KEY']!,
     appId: '1:687809545820:ios:5c9257d792934b59fa4899',
     messagingSenderId: '687809545820',
     projectId: 'blurrly',
@@ -59,8 +60,8 @@ class DefaultFirebaseOptions {
     iosBundleId: 'com.example.myApp',
   );
 
-  static const FirebaseOptions windows = FirebaseOptions(
-    apiKey: 'AIzaSyDqa6hYNf1NpTC39YJepaELuXF0jKfbrXg',
+  static final FirebaseOptions windows = FirebaseOptions(
+    apiKey: dotenv.env['FIREBASE_API_KEY']!,
     appId: '1:687809545820:web:c75c12dddcbdd80dfa4899',
     messagingSenderId: '687809545820',
     projectId: 'blurrly',
@@ -69,8 +70,8 @@ class DefaultFirebaseOptions {
     measurementId: 'G-1HXP7MVQBV',
   );
 
-  static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyBVXcJukraMkxXVLmy0gXIp3uCkjDAmx3M',
+  static final FirebaseOptions ios = FirebaseOptions(
+    apiKey: dotenv.env['FIREBASE_API_KEY']!,
     appId: '1:687809545820:ios:5c9257d792934b59fa4899',
     messagingSenderId: '687809545820',
     projectId: 'blurrly',
@@ -78,8 +79,8 @@ class DefaultFirebaseOptions {
     iosBundleId: 'com.example.myApp',
   );
 
-  static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyDneeOQ0FkrauEc0nOJ8y51D6zeRY06hCY',
+  static final FirebaseOptions android = FirebaseOptions(
+    apiKey: dotenv.env['FIREBASE_API_KEY']!,
     appId: '1:687809545820:android:8c5dca435a9cc23efa4899',
     messagingSenderId: '687809545820',
     projectId: 'blurrly',
