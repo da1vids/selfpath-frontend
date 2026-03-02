@@ -359,7 +359,7 @@ class AuthService {
         },
         body: jsonEncode(body),
       );
-      // persist last-sent tokenn
+      // persist last-sent token
       await prefs.setString('fcm_token', fcmToken);
     } catch (e) {
 
