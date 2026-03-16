@@ -120,6 +120,3 @@ flutter:
     - assets/icons/
     - assets/images/
     - assets/videos/
-
-dependency_overrides:
-  flutter_secure_storage: ^10.0.0
