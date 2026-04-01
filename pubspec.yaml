@@ -50,7 +50,7 @@ dependencies:
   cached_network_image: ^3.4.1
   cupertino_icons: ^1.0.8
   image_picker: ^1.1.2
-  image_cropper: ^11.0.0
+  image_cropper: ^12.1.1
   ffmpeg_kit_flutter_new: ^4.1.0
   flutter_xlider: ^3.5.0
   camera: ^0.12.0
