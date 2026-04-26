@@ -298,7 +298,7 @@ class AuthService {
     };
 
     try {
-      final resp = await http.post(
+      await http.post(
         Uri.parse('$_baseUrl/api/auth/device-token'),
         headers: {
           'Authorization': 'Bearer $authToken',
