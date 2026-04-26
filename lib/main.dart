@@ -43,7 +43,7 @@ void main() async {
     iOS: iosSettings,
   );
 
-  await flutterLocalNotificationsPlugin.initialize(initSettings);
+  await flutterLocalNotificationsPlugin.initialize(settings: initSettings);
 
   // 🔐 FCM token logic
   FirebaseMessaging messaging = FirebaseMessaging.instance;
@@ -168,10 +168,10 @@ class _MyAppState extends State<MyApp> {
         );
 
         await flutterLocalNotificationsPlugin.show(
-          notif.hashCode,
-          notif.title,
-          notif.body,
-          platformDetails,
+          id: notif.hashCode,
+          title: notif.title,
+          body: notif.body,
+          notificationDetails: platformDetails,
         );
       }
     });

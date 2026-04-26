@@ -60,7 +60,6 @@ dependencies:
   image: ^4.0.17
   device_info_plus: ^12.1.0
   package_info_plus: ^9.0.0
-
 dev_dependencies:
   flutter_test:
     sdk: flutter

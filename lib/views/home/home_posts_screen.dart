@@ -562,11 +562,11 @@ class _HomePostsScreenState extends State<HomePostsScreen>
                               imageUrl: imagePath,
                               fit: BoxFit.cover,
                               placeholder:
-                                  (_, __) => Center(
+                                  (_, _) => Center(
                                     child: CircularProgressIndicator(),
                                   ),
                               errorWidget:
-                                  (_, __, ___) =>
+                                  (_, _, _) =>
                                       Icon(Icons.error, color: Colors.white),
                             ),
                   );

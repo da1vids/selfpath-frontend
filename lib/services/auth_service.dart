@@ -1,12 +1,9 @@
 import 'dart:convert';
-import 'dart:typed_data';
 import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:http/http.dart' as http;
-import 'package:walletconnect_dart/walletconnect_dart.dart';
-import 'package:web3dart/crypto.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../utils/device_utils.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -173,55 +170,6 @@ class AuthService {
         'message': 'Facebook login error: ${e.toString()}',
       };
     }
-  }
-
-  Future<bool> loginWithWeb3(Function(String uri) onDisplayUri) async {
-    final connector = WalletConnect(
-      bridge: 'https://bridge.walletconnect.org',
-      clientMeta: PeerMeta(
-        name: 'Blurred',
-        description: 'Content unlock app',
-        url: 'https://yourdomain.com',
-        icons: ['https://yourdomain.com/logo.png'],
-      ),
-    );
-
-    if (!connector.connected) {
-      await connector.createSession(onDisplayUri: onDisplayUri);
-    }
-
-    if (connector.session.accounts.isEmpty) return false;
-    final address = connector.session.accounts[0];
-    final message = "Sign this message to login to Blurred";
-    final msgHex = bytesToHex(
-      Uint8List.fromList(message.codeUnits),
-      include0x: true,
-    );
-
-    final signature = await connector.sendCustomRequest(
-      method: "personal_sign",
-      params: [msgHex, address],
-    );
-
-    final response = await http.post(
-      Uri.parse(loginEndpoint),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({
-        'login_method': 'web3',
-        'wallet_address': address,
-        'message': message,
-        'signature': signature,
-      }),
-    );
-
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('token', data['token']);
-      return true;
-    }
-
-    return false;
   }
 
   Future<bool> logout() async {

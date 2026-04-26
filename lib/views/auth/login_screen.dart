@@ -253,30 +253,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             () => _authService.loginWithFacebook(),
                           );
                         }),
-                        _buildSocialIcon('assets/icons/wallet.svg', () {
-                          // capture before any async gap
-                          final nav = Navigator.of(context, rootNavigator: true);
-                          final messenger = ScaffoldMessenger.of(context);
 
-                          _authService
-                              .loginWithWeb3((uri) {
-                            messenger.showSnackBar(
-                              SnackBar(
-                                content: Text('Open this URI in your Wallet:\n$uri'),
-                                duration: const Duration(seconds: 10),
-                              ),
-                            );
-                          })
-                              .then((success) {
-                            if (success) {
-                              nav.pushReplacementNamed('/home'); // no BuildContext used
-                            } else {
-                              messenger.showSnackBar(
-                                const SnackBar(content: Text('Login failed')),
-                              );
-                            }
-                          });
-                        }),
                       ],
                     ),
                     SizedBox(height: 20),

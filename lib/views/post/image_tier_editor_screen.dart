@@ -864,8 +864,8 @@ class _ImageTierEditorScreenState extends State<ImageTierEditorScreen>
                                         PageRouteBuilder(
                                           pageBuilder: (
                                             BuildContext context,
-                                            __,
-                                            ___,
+                                            _,
+                                            _,
                                           ) {
                                             return ImageVideoSelector(
                                               onMediaSelected: (
@@ -888,7 +888,7 @@ class _ImageTierEditorScreenState extends State<ImageTierEditorScreen>
                                               Colors
                                                   .black, // ✅ Optional: matches black camera background
                                           transitionsBuilder:
-                                              (_, animation, __, child) =>
+                                              (_, animation, _, child) =>
                                                   FadeTransition(
                                                     opacity: animation,
                                                     child: child,
